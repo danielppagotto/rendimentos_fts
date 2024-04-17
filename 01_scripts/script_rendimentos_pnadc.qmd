@@ -12,7 +12,9 @@ Foram feitos cálculos para 12 ocupações:
 
 -   MÉDICO ESPECIALISTA
 
--   ENFERMEIRO VETERINÁRIO DENTISTA FARMACEUTICO FISIOTERAPEUTAS NUTRICIONISTAS FONOAUDIÓLOGOS TÉCNICO DE ENFERMAGEM AJUDANTES DE AMBULÂNCIA TRABALHADORES COMUNITÁRIOS DA SAÚDE
+-   ENFERMEIRO
+
+-   VETERINÁRIO DENTISTA FARMACEUTICO FISIOTERAPEUTAS NUTRICIONISTAS FONOAUDIÓLOGOS TÉCNICO DE ENFERMAGEM AJUDANTES DE AMBULÂNCIA TRABALHADORES COMUNITÁRIOS DA SAÚDE
 
 ## Criando o algoritmo base
 
@@ -29,7 +31,7 @@ library(srvyr)
 
 ```
 
-Primeiramente, fizemos o download usando o pacote `PNADcIBGE` 
+Primeiramente, fizemos o download usando o pacote `PNADcIBGE`
 
 ```{r}
 
@@ -52,7 +54,7 @@ renda_med_geral_4tri23 <- base_pnad23_4ts |>
 
 ```
 
-# Criando uma função em cima do algoritmo base 
+# Criando uma função em cima do algoritmo base
 
 ```{r}
 
@@ -75,8 +77,7 @@ rendimento_medicos <- function(ano, trimestre){
 
 ```
 
-
-Rodando a função para cada ano 
+Rodando a função para cada ano
 
 ```{r}
 
@@ -90,7 +91,6 @@ medicos_rendimento <- rbind(renda_med_geral_3tri23,
                             renda_med_geral_4tri23)
 
 ```
-
 
 ```{r}
 
@@ -117,4 +117,3 @@ resultado_final <- do.call(bind_rows, lista_resultados)
 
 
 ```
-
