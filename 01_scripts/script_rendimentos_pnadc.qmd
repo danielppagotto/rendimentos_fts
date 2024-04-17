@@ -1,0 +1,120 @@
+---
+title: "Rendimentos"
+format: html
+editor: visual
+---
+
+O objetivo deste documento é descrever os procedimentos metodológicos para calcular a renda de determinados profissionais de saúde, de acordo com dados da PNADc.
+
+Foram feitos cálculos para 12 ocupações:
+
+-   MÉDICO GERAL
+
+-   MÉDICO ESPECIALISTA
+
+-   ENFERMEIRO VETERINÁRIO DENTISTA FARMACEUTICO FISIOTERAPEUTAS NUTRICIONISTAS FONOAUDIÓLOGOS TÉCNICO DE ENFERMAGEM AJUDANTES DE AMBULÂNCIA TRABALHADORES COMUNITÁRIOS DA SAÚDE
+
+## Criando o algoritmo base
+
+Carregando os pacotes necessários
+
+```{r}
+
+library(PNADcIBGE)
+library(survey)
+library(writexl)
+library(tidyverse)
+library(readxl)
+library(srvyr)
+
+```
+
+Primeiramente, fizemos o download usando o pacote `PNADcIBGE` 
+
+```{r}
+
+base_pnad23_4t <- get_pnadc(year = 2023, quarter = 4, vars=c("VD4016","V4010"))
+base_pnad23_4ts <- as_survey(base_pnad23_4t) #HABILITANDO PARA O PACOTE SRVYR
+
+class(base_pnad23_4t)
+class(base_pnad23_4ts)
+
+# RENDIMENTO MÉDIO - MÉDICO GERAL
+
+renda_med_geral_4tri23 <- base_pnad23_4ts |>
+  filter(V4010 == "2211") |> 
+  group_by(UF) |> 
+  summarise(Rend_med_geral = survey_median(VD4016, na.rm = TRUE)) |> 
+  select(-Rend_med_geral_se) |> 
+  mutate(prof = "Médico Generalista", .before = UF) |>
+  mutate(trimestre = 4, .before = prof) |> 
+  mutate(ano = 2023, .before = trimestre) 
+
+```
+
+# Criando uma função em cima do algoritmo base 
+
+```{r}
+
+rendimento_medicos <- function(ano, trimestre){
+  
+  base_pnadc <- get_pnadc(year = ano, quarter = trimestre, vars=c("VD4016","V4010"))
+  base_pnadc_srvyr <- as_survey(base_pnadc) #HABILITANDO PARA O PACOTE SRVYR
+  
+  base_pnadc_srvyr |>
+    filter(V4010 == "2211") |> 
+    group_by(UF) |> 
+    summarise(Rend_med_geral = survey_median(VD4016, na.rm = TRUE)) |> 
+    mutate(prof = "Médico Generalista", .before = UF) |>
+    mutate(trimestre = trimestre, .before = prof) |> 
+    mutate(ano = ano, .before = trimestre) |> 
+    select(-Rend_med_geral_se)
+
+}
+
+
+```
+
+
+Rodando a função para cada ano 
+
+```{r}
+
+
+
+renda_med_geral_3tri23 <- rendimento_medicos(2023, 3)
+renda_med_geral_3tri23 <- rendimento_medicos(2023, 3)
+renda_med_geral_3tri23 <- rendimento_medicos(2023, 3)
+
+medicos_rendimento <- rbind(renda_med_geral_3tri23,
+                            renda_med_geral_4tri23)
+
+```
+
+
+```{r}
+
+medicos_rendimento |>  
+  filter(UF == "Acre") |> 
+  ggplot(aes(x = trimestre, y = Rend_med_geral)) + geom_col() + 
+  theme_minimal() 
+
+```
+
+```{r}
+
+lista_resultados <- list()
+
+for (ano in 2018:2019) {
+
+  resultado_ano <- rendimento_medicos(ano, 3)
+  
+  lista_resultados[[as.character(ano)]] <- resultado_ano
+}
+
+
+resultado_final <- do.call(bind_rows, lista_resultados)
+
+
+```
+
