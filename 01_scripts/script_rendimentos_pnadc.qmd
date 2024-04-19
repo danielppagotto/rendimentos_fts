@@ -14,7 +14,23 @@ Foram feitos cálculos para 12 ocupações:
 
 -   ENFERMEIRO
 
--   VETERINÁRIO DENTISTA FARMACEUTICO FISIOTERAPEUTAS NUTRICIONISTAS FONOAUDIÓLOGOS TÉCNICO DE ENFERMAGEM AJUDANTES DE AMBULÂNCIA TRABALHADORES COMUNITÁRIOS DA SAÚDE
+-   VETERINÁRIO
+
+-   DENTISTA
+
+-   FARMACEUTICO
+
+-   FISIOTERAPEUTAS
+
+-   NUTRICIONISTAS
+
+-   FONOAUDIÓLOGOS
+
+-   TÉCNICO DE ENFERMAGEM
+
+-   AJUDANTES DE AMBULÂNCIA
+
+-   TRABALHADORES COMUNITÁRIOS DA SAÚDE
 
 ## Criando o algoritmo base
 
@@ -31,89 +47,76 @@ library(srvyr)
 
 ```
 
-Primeiramente, fizemos o download usando o pacote `PNADcIBGE`
+Em seguida, é redigida a função que irá calcular o rendimento médio de acordo com o ano, trimestre e o COD.
 
 ```{r}
 
-base_pnad23_4t <- get_pnadc(year = 2023, quarter = 4, vars=c("VD4016","V4010"))
-base_pnad23_4ts <- as_survey(base_pnad23_4t) #HABILITANDO PARA O PACOTE SRVYR
-
-class(base_pnad23_4t)
-class(base_pnad23_4ts)
-
-# RENDIMENTO MÉDIO - MÉDICO GERAL
-
-renda_med_geral_4tri23 <- base_pnad23_4ts |>
-  filter(V4010 == "2211") |> 
-  group_by(UF) |> 
-  summarise(Rend_med_geral = survey_median(VD4016, na.rm = TRUE)) |> 
-  select(-Rend_med_geral_se) |> 
-  mutate(prof = "Médico Generalista", .before = UF) |>
-  mutate(trimestre = 4, .before = prof) |> 
-  mutate(ano = 2023, .before = trimestre) 
-
-```
-
-# Criando uma função em cima do algoritmo base
-
-```{r}
-
-rendimento_medicos <- function(ano, trimestre){
+# Defina a função rendimento_medicos(ano, trimestre) primeiro
+rendimento_medio <- function(ano, trimestre, COD){
   
   base_pnadc <- get_pnadc(year = ano, quarter = trimestre, vars=c("VD4016","V4010"))
   base_pnadc_srvyr <- as_survey(base_pnadc) #HABILITANDO PARA O PACOTE SRVYR
   
   base_pnadc_srvyr |>
-    filter(V4010 == "2211") |> 
+    filter(V4010 == !!COD) |> 
     group_by(UF) |> 
-    summarise(Rend_med_geral = survey_median(VD4016, na.rm = TRUE)) |> 
-    mutate(prof = "Médico Generalista", .before = UF) |>
+    summarise(Rend_medio = survey_median(VD4016, na.rm = TRUE)) |> 
+    mutate(prof = !!COD, .before = UF) |>
     mutate(trimestre = trimestre, .before = prof) |> 
     mutate(ano = ano, .before = trimestre) |> 
-    select(-Rend_med_geral_se)
+    select(-Rend_medio_se)
+}
+```
 
+Abaixo está descrito o código que irá gerar os resultados das funções de cada uma das ocupações, para todos os trimestres entre os anos de 2018 e 2023.
+
+```{r}
+# Lista de valores COD
+lista_COD <- c("2211", "2212", "2221", "2250", "2261", "2262", "2264", "2265", "2266", "3221", "3258", "3253")
+
+# Vetor de anos e trimestres
+anos <- 2022:2023
+trimestres <- 1:4
+
+# Função para calcular o rendimento médio para cada valor COD, ano e trimestre
+resultado <- list()
+
+for (ano in anos) {
+  for (trimestre in trimestres) {
+    for (COD in lista_COD) {
+      resultado[[length(resultado) + 1]] <- rendimento_medio(ano = ano, trimestre = trimestre, COD = COD)
+    }
+  }
 }
 
+# Combina os resultados em um único data frame
+resultado_final <- do.call(rbind, resultado)
 
+# Exibir o resultado final
+print(resultado_final)
 ```
 
-Rodando a função para cada ano
+Após gerar os resultados, renomearemos o COD pela sua respectiva ocupação.
 
 ```{r}
 
-
-
-renda_med_geral_3tri23 <- rendimento_medicos(2023, 3)
-renda_med_geral_3tri23 <- rendimento_medicos(2023, 3)
-renda_med_geral_3tri23 <- rendimento_medicos(2023, 3)
-
-medicos_rendimento <- rbind(renda_med_geral_3tri23,
-                            renda_med_geral_4tri23)
-
-```
-
-```{r}
-
-medicos_rendimento |>  
-  filter(UF == "Acre") |> 
-  ggplot(aes(x = trimestre, y = Rend_med_geral)) + geom_col() + 
-  theme_minimal() 
-
-```
-
-```{r}
-
-lista_resultados <- list()
-
-for (ano in 2018:2019) {
-
-  resultado_ano <- rendimento_medicos(ano, 3)
-  
-  lista_resultados[[as.character(ano)]] <- resultado_ano
-}
-
-
-resultado_final <- do.call(bind_rows, lista_resultados)
-
+resultado_final <- resultado_final |>
+                    mutate(
+                      prof = ifelse(prof == "2211", "Médico Generalista",
+                             ifelse(prof == "2212", "Médico Especialista",
+                             ifelse(prof == "2221", "Enfermeiro",
+                             ifelse(prof == "2250", "Veterinário",
+                             ifelse(prof == "2261", "Dentista",
+                             ifelse(prof == "2262", "Farmacêutico",
+                             ifelse(prof == "2264", "Fisioterapeuta",
+                             ifelse(prof == "2265", "Nutricionista",
+                             ifelse(prof == "2266", "Fonoaudiólogo",
+                             ifelse(prof == "3221", "Técnico de Enfermagem",
+                             ifelse(prof == "3258", "Ajudantes da Ambulância",
+                             ifelse(prof == "3253", "Trabalhadores Comunitários da Saúde",
+                                    prof)))))))))))))
+                                           
+                                           
+                                    
 
 ```
