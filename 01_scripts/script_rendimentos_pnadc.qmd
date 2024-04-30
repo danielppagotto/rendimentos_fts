@@ -37,6 +37,7 @@ Foram feitos cálculos para 12 ocupações:
 Carregando os pacotes necessários
 
 ```{r}
+#|warning: false
 
 library(PNADcIBGE)
 library(survey)
@@ -54,17 +55,19 @@ Em seguida, é redigida a função que irá calcular o rendimento médio de acor
 # Defina a função rendimento_medicos(ano, trimestre) primeiro
 rendimento_medio <- function(ano, trimestre, COD){
   
-  base_pnadc <- get_pnadc(year = ano, quarter = trimestre, vars=c("VD4016","V4010"))
+  base_pnadc <- get_pnadc(year = ano, 
+                          quarter = trimestre, 
+                          vars=c("VD4016","V4010"))
+  
   base_pnadc_srvyr <- as_survey(base_pnadc) #HABILITANDO PARA O PACOTE SRVYR
   
   base_pnadc_srvyr |>
     filter(V4010 == !!COD) |> 
     group_by(UF) |> 
-    summarise(Rend_medio = survey_median(VD4016, na.rm = TRUE)) |> 
+    summarise(Rend_medio = survey_mean(VD4016, na.rm = TRUE)) |> 
     mutate(prof = !!COD, .before = UF) |>
     mutate(trimestre = trimestre, .before = prof) |> 
-    mutate(ano = ano, .before = trimestre) |> 
-    select(-Rend_medio_se)
+    mutate(ano = ano, .before = trimestre) 
 }
 ```
 
@@ -84,7 +87,8 @@ resultado <- list()
 for (ano in anos) {
   for (trimestre in trimestres) {
     for (COD in lista_COD) {
-      resultado[[length(resultado) + 1]] <- rendimento_medio(ano = ano, trimestre = trimestre, COD = COD)
+      resultado[[length(resultado) + 1]] <- 
+        rendimento_medio(ano = ano, trimestre = trimestre, COD = COD)
     }
   }
 }
